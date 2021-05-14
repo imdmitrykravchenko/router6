@@ -1,4 +1,4 @@
-class NavigationError extends Error {
+export class NavigationError extends Error {
   code: number;
   meta?: { path?: string; route?: string };
 }
@@ -35,12 +35,6 @@ export class Redirect extends NavigationError {
     this.meta = { route };
   }
 }
-
-export type RoutingError =
-  | NotFoundError
-  | ForbiddenError
-  | InternalServerError
-  | Redirect;
 
 export class IllegalRouteParamsError extends Error {}
 export class UnExistentRouteError extends Error {}

@@ -1,6 +1,6 @@
 import { UrlWithParsedQuery } from 'url';
 import { Key } from 'path-to-regexp';
-import { RoutingError } from './errors';
+import { NavigationError } from './errors';
 import Router6 from './Router6';
 
 export type Query = UrlWithParsedQuery['query'];
@@ -20,7 +20,7 @@ export type ParsedRouteDefinition = RouteDefinition & {
 export type RouteParams = { [key: string]: string | number | undefined };
 
 export type Route = {
-  error?: RoutingError;
+  error?: NavigationError;
   state?: any;
   path: string;
   name: string;

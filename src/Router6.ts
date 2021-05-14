@@ -1,7 +1,7 @@
 import {
   isRoutingError,
   IllegalRouteParamsError,
-  RoutingError,
+  NavigationError,
   UnExistentRouteError,
   UnRegisteredPathError,
 } from './errors';
@@ -61,7 +61,7 @@ class Router6 {
     return stackLength < 2 ? undefined : this.stack[stackLength - 2];
   }
 
-  set error(error: RoutingError) {
+  set error(error: NavigationError) {
     this.navigateToRoute(
       String(error.code),
       { meta: error.meta, state: { message: error.message } },
