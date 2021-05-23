@@ -20,6 +20,7 @@ import {
   RouteMiddlewareHandler,
 } from './types';
 import { parseDefinition, flatten } from './utils';
+import compose from './compose';
 
 class Router6 {
   routes: ParsedRouteDefinition[];
@@ -318,27 +319,12 @@ class Router6 {
     return (
       error
         ? Promise.reject(error)
-        : this.middleware.reduce(
-            (process, middleware) =>
-              process
-                .then(
-                  () =>
-                    new Promise<void>((resolve, reject) =>
-                      middleware(
-                        payload,
-                        () =>
-                          this.navigation === currentNavigation
-                            ? resolve()
-                            : reject(),
-                        (e) => {
-                          reject(e);
-                          return e;
-                        },
-                      ),
-                    ),
-                )
-                .then(() => callListeners('progress')),
-            Promise.resolve(),
+        : new Promise((resolve, reject) =>
+            compose(this.middleware, () => callListeners('progress'))(
+              payload,
+              resolve,
+              reject,
+            ).then(resolve, reject),
           )
     )
       .catch((e) => {
