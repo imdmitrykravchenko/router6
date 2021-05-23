@@ -324,7 +324,7 @@ class Router6 {
               payload,
               resolve,
               reject,
-            ).then(resolve, reject),
+            ).then(resolve),
           )
     )
       .catch((e) => {
