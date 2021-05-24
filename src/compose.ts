@@ -1,5 +1,5 @@
 const compose = (middleware, callback) => {
-  return (payload, next, abort) => {
+  return (payload) => {
     let index = -1;
     return run(0);
 
@@ -12,15 +12,14 @@ const compose = (middleware, callback) => {
 
       let fn = middleware[i];
 
-      if (i === middleware.length) {
-        fn = next;
-      }
-
       if (!fn) {
         return Promise.resolve();
       }
 
       try {
+        const abort = (e) => {
+          throw e;
+        };
         return Promise.resolve(fn(payload, run.bind(null, i + 1), abort)).then(
           (p) => {
             callback();

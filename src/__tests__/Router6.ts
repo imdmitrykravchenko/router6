@@ -1,4 +1,4 @@
-import Router6 from '../index';
+import Router6, { Redirect } from '../index';
 import {
   IllegalRouteParamsError,
   UnExistentRouteError,
@@ -213,30 +213,173 @@ describe('Router6', () => {
       expect(router.currentRoute.path).toBe('/');
       expect(router.currentRoute.name).toBe('home');
     });
+    describe('koa-style', () => {
+      it('simple calls', async () => {
+        const router = new Router6([
+          { path: '/', name: 'home' },
+          { path: '/blog', name: 'blog' },
+        ]);
 
-    it('use koa-style', async () => {
+        let i = 0;
+
+        const fn = jest.fn();
+        const fn2 = jest.fn();
+        const middlewareInner = jest.fn(({ to }, next, abort) => {
+          fn(i++);
+          return next();
+        });
+        const middlewareInner2 = jest.fn(({ to }, next, abort) => {
+          fn2(i++);
+          return next();
+        });
+        router.use(() => middlewareInner);
+        router.use(() => middlewareInner2);
+
+        await router.start('/');
+
+        expect(fn).toHaveBeenCalledWith(0);
+        expect(fn2).toHaveBeenCalledWith(1);
+      });
+    });
+    it('inversed calls', async () => {
+      const router = new Router6([
+        { path: '/', name: 'home' },
+        { path: '/blog', name: 'blog' },
+      ]);
+
+      let i = 0;
+
+      const fn = jest.fn();
+      const fn2 = jest.fn();
+      const middlewareInner = jest.fn(({ to }, next, abort) => {
+        return next().then(() => {
+          fn(i++);
+        });
+      });
+      const middlewareInner2 = jest.fn(({ to }, next, abort) => {
+        fn2(i++);
+        return next();
+      });
+      router.use(() => middlewareInner);
+      router.use(() => middlewareInner2);
+
+      await router.start('/');
+
+      expect(fn).toHaveBeenCalledWith(1);
+      expect(fn2).toHaveBeenCalledWith(0);
+    });
+
+    it('simple abort', async () => {
+      const router = new Router6([
+        { path: '/', name: 'home' },
+        { path: '/blog', name: 'blog' },
+      ]);
+
+      let i = 0;
+
+      const fn = jest.fn();
+      const middlewareInner = jest.fn(({ to }, next, abort) => {
+        fn(i++);
+        return next();
+      });
+      const middlewareInner2 = jest.fn(({ to }, next, abort) => {
+        return abort(new Error('fucked up'));
+      });
+      router.use(() => middlewareInner);
+      router.use(() => middlewareInner2);
+
+      let catched = false;
+
+      try {
+        await router.start('/');
+      } catch (e) {
+        catched = true;
+      }
+
+      expect(fn).toHaveBeenCalledWith(0);
+      expect(catched).toBe(true);
+    });
+
+    it('simple abort navigate error', async () => {
       const router = new Router6([
         { path: '/', name: 'home' },
         { path: '/blog', name: 'blog' },
       ]);
 
       const fn = jest.fn();
-      const middlewareInner = jest.fn(async ({ to }, next, abort) => {
-        fn(await next());
+      const middlewareInner = jest.fn(({ to }, next, abort) => {
+        fn();
+        return next();
       });
       const middlewareInner2 = jest.fn(({ to }, next, abort) => {
-        return new Promise((r) => setTimeout(() => r(111), 200));
+        return abort(new Redirect('Redirected', { route: 'blog' }));
       });
-      const middlewareInner3 = jest.fn(() => {});
+
+      router.use(() => middlewareInner);
+      router.use(() => middlewareInner2);
+
+      let catched = false;
+
+      try {
+        await router.start('/');
+      } catch (e) {
+        catched = true;
+      }
+
+      expect(fn).toHaveBeenCalled();
+      expect(catched).toBe(false);
+      expect(router.currentRoute).toMatchObject({
+        name: 'blog',
+        path: '/blog',
+        error: new Redirect('Redirected', { route: 'blog' }),
+      });
+    });
+
+    it('reversed abort navigate error', async () => {
+      const router = new Router6([
+        { path: '/', name: 'home' },
+        { path: '/blog', name: 'blog' },
+      ]);
+      let index = 0;
+      const fn = jest.fn();
+      const fn2 = jest.fn();
+      const fn3 = jest.fn();
+      const middlewareInner = jest.fn(({ to }, next, abort) => {
+        return next().then(() => {
+          fn(index++);
+          return abort(new Redirect('Redirected', { route: 'blog' }));
+        });
+      });
+      const middlewareInner2 = jest.fn(({ to }, next, abort) => {
+        fn2(index++);
+        return next();
+      });
+      const middlewareInner3 = jest.fn(({ to }, next, abort) => {
+        fn3(index++);
+        return next();
+      });
+
       router.use(() => middlewareInner);
       router.use(() => middlewareInner2);
       router.use(() => middlewareInner3);
 
-      await router.start('/');
+      let catched = false;
 
-      expect(fn).toHaveBeenCalledWith(111);
-      // because dont have next call
-      expect(middlewareInner3).not.toHaveBeenCalled();
+      try {
+        await router.start('/');
+      } catch (e) {
+        catched = true;
+      }
+
+      expect(fn).toHaveBeenCalledWith(2);
+      expect(fn2).toHaveBeenCalledWith(0);
+      expect(fn3).toHaveBeenCalledWith(1);
+      expect(catched).toBe(false);
+      expect(router.currentRoute).toMatchObject({
+        name: 'blog',
+        path: '/blog',
+        error: new Redirect('Redirected', { route: 'blog' }),
+      });
     });
   });
 

@@ -1,6 +1,11 @@
 export class NavigationError extends Error {
   code: number;
   meta?: { path?: string; route?: string };
+  constructor(message: string) {
+    super(message);
+    // because of https://github.com/Microsoft/TypeScript/wiki/FAQ#why-doesnt-extending-built-ins-like-error-array-and-map-work
+    Object.setPrototypeOf(this, NavigationError.prototype);
+  }
 }
 
 export class NotFoundError extends NavigationError {

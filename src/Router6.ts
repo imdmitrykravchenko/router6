@@ -319,13 +319,7 @@ class Router6 {
     return (
       error
         ? Promise.reject(error)
-        : new Promise((resolve, reject) =>
-            compose(this.middleware, () => callListeners('progress'))(
-              payload,
-              resolve,
-              reject,
-            ).then(resolve),
-          )
+        : compose(this.middleware, () => callListeners('progress'))(payload)
     )
       .catch((e) => {
         if (isRoutingError(e)) {
