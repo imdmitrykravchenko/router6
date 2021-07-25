@@ -1,10 +1,8 @@
 import {
-  isRoutingError,
   IllegalRouteParamsError,
   NavigationError,
   UnExistentRouteError,
   UnRegisteredPathError,
-  Redirect,
 } from './errors';
 import { compile } from 'path-to-regexp';
 import shallowEqual from 'shallowequal';
@@ -330,11 +328,12 @@ class Router6 {
       payload.to.error instanceof NavigationError &&
       payload.to.error.code === 302;
 
-    return (
-      error
-        ? Promise.reject(error)
-        : compose(this.middleware, () => callListeners('progress'))(payload)
-    )
+    return compose(this.middleware, () => callListeners('progress'))(payload)
+      .then(() => {
+        if (error) {
+          throw error;
+        }
+      })
       .catch((e) => {
         payload.type = 'replace';
         payload.to.error = e;

@@ -1,4 +1,4 @@
-import Router6, { InternalServerError, Redirect } from '../index';
+import Router6, { Redirect } from '../index';
 import {
   IllegalRouteParamsError,
   UnExistentRouteError,
@@ -462,6 +462,20 @@ describe('Router6', () => {
       expect(onStart).not.toHaveBeenCalledWith();
       expect(onProgress).not.toHaveBeenCalledWith();
       expect(onFinish).not.toHaveBeenCalledWith();
+    });
+  });
+
+  describe('errors handling', () => {
+    it('404', async () => {
+      const router = new Router6([
+        { path: '/', name: 'home' },
+        { path: '/:section(a|b|c)/:tag', name: 'some' },
+        { path: '/(.*)', name: '404' },
+      ]);
+
+      await router.start('/g/bb');
+
+      expect(router.currentRoute.name).toBe('404');
     });
   });
 });
