@@ -31,8 +31,7 @@ export type Route = {
 
 export type RouteMiddlewareHandler = (
   { from, to, type }: { from: Route | null; to: Route; type: string },
-  next: () => void,
-  abort: (e: Error) => void,
+  next: (e?: Error) => void,
 ) => void;
 
 export type RouteMiddleware = (router: Router6) => RouteMiddlewareHandler;

@@ -1,4 +1,4 @@
-import Router6, { Redirect } from '../index';
+import Router6, { InternalServerError, Redirect } from '../index';
 import {
   IllegalRouteParamsError,
   UnExistentRouteError,
@@ -40,6 +40,8 @@ describe('Router6', () => {
         },
         path: '/blog/wow',
         query: { a: '1' },
+        error: null,
+        state: undefined,
       },
       {
         config: {},
@@ -47,6 +49,8 @@ describe('Router6', () => {
         params: {},
         path: '/blog',
         query: {},
+        error: null,
+        state: undefined,
       },
     ]);
   });
@@ -173,7 +177,7 @@ describe('Router6', () => {
         { path: '/blog', name: 'blog' },
       ]);
 
-      const middlewareInner = jest.fn(({ to }, next, abort) => {
+      const middlewareInner = jest.fn(({ to }, next) => {
         next();
       });
 
@@ -185,6 +189,7 @@ describe('Router6', () => {
         {
           from: undefined,
           to: {
+            error: null,
             params: {},
             config: {},
             name: 'home',
@@ -195,11 +200,10 @@ describe('Router6', () => {
           type: 'push',
         },
         expect.any(Function),
-        expect.any(Function),
       );
 
-      middlewareInner.mockImplementation(({ from }, __, abort) => {
-        abort(new Error('nope'));
+      middlewareInner.mockImplementation(({ from }, next) => {
+        next(new Error('nope'));
       });
       let stopped = false;
 
@@ -210,8 +214,9 @@ describe('Router6', () => {
       }
 
       expect(stopped).toBe(true);
-      expect(router.currentRoute.path).toBe('/');
-      expect(router.currentRoute.name).toBe('home');
+      expect(router.currentRoute.path).toBe('/blog');
+      expect(router.currentRoute.name).toBe('blog');
+      expect(router.currentRoute.error).toEqual(new Error('nope'));
     });
     describe('koa-style', () => {
       it('simple calls', async () => {
@@ -224,11 +229,11 @@ describe('Router6', () => {
 
         const fn = jest.fn();
         const fn2 = jest.fn();
-        const middlewareInner = jest.fn(({ to }, next, abort) => {
+        const middlewareInner = jest.fn(({ to }, next) => {
           fn(i++);
           return next();
         });
-        const middlewareInner2 = jest.fn(({ to }, next, abort) => {
+        const middlewareInner2 = jest.fn(({ to }, next) => {
           fn2(i++);
           return next();
         });
@@ -251,12 +256,12 @@ describe('Router6', () => {
 
       const fn = jest.fn();
       const fn2 = jest.fn();
-      const middlewareInner = jest.fn(({ to }, next, abort) => {
+      const middlewareInner = jest.fn(({ to }, next) => {
         return next().then(() => {
           fn(i++);
         });
       });
-      const middlewareInner2 = jest.fn(({ to }, next, abort) => {
+      const middlewareInner2 = jest.fn(({ to }, next) => {
         fn2(i++);
         return next();
       });
@@ -278,26 +283,26 @@ describe('Router6', () => {
       let i = 0;
 
       const fn = jest.fn();
-      const middlewareInner = jest.fn(({ to }, next, abort) => {
+      const middlewareInner = jest.fn(({ to }, next) => {
         fn(i++);
         return next();
       });
-      const middlewareInner2 = jest.fn(({ to }, next, abort) => {
-        return abort(new Error('fucked up'));
+      const middlewareInner2 = jest.fn(({ to }, next) => {
+        return next(new Error('fucked up'));
       });
       router.use(() => middlewareInner);
       router.use(() => middlewareInner2);
 
-      let catched = false;
+      let caught = false;
 
       try {
         await router.start('/');
       } catch (e) {
-        catched = true;
+        caught = true;
       }
 
       expect(fn).toHaveBeenCalledWith(0);
-      expect(catched).toBe(true);
+      expect(caught).toBe(true);
     });
 
     it('simple abort navigate error', async () => {
@@ -307,27 +312,31 @@ describe('Router6', () => {
       ]);
 
       const fn = jest.fn();
-      const middlewareInner = jest.fn(({ to }, next, abort) => {
+      const middlewareInner = jest.fn(({ to }, next) => {
         fn();
         return next();
       });
-      const middlewareInner2 = jest.fn(({ to }, next, abort) => {
-        return abort(new Redirect('Redirected', { route: 'blog' }));
+      const middlewareInner2 = jest.fn(({ to }, next) => {
+        return next(
+          to.path === '/'
+            ? new Redirect('Redirected', { route: 'blog' })
+            : null,
+        );
       });
 
       router.use(() => middlewareInner);
       router.use(() => middlewareInner2);
 
-      let catched = false;
+      let caught = false;
 
       try {
         await router.start('/');
       } catch (e) {
-        catched = true;
+        caught = true;
       }
 
       expect(fn).toHaveBeenCalled();
-      expect(catched).toBe(false);
+      expect(caught).toBe(false);
       expect(router.currentRoute).toMatchObject({
         name: 'blog',
         path: '/blog',
@@ -344,17 +353,17 @@ describe('Router6', () => {
       const fn = jest.fn();
       const fn2 = jest.fn();
       const fn3 = jest.fn();
-      const middlewareInner = jest.fn(({ to }, next, abort) => {
+      const middlewareInner = jest.fn(({ to }, next) => {
         return next().then(() => {
           fn(index++);
-          return abort(new Redirect('Redirected', { route: 'blog' }));
+          return next(new Redirect('Redirected', { route: 'blog' }));
         });
       });
-      const middlewareInner2 = jest.fn(({ to }, next, abort) => {
+      const middlewareInner2 = jest.fn(({ to }, next) => {
         fn2(index++);
         return next();
       });
-      const middlewareInner3 = jest.fn(({ to }, next, abort) => {
+      const middlewareInner3 = jest.fn(({ to }, next) => {
         fn3(index++);
         return next();
       });
@@ -363,18 +372,18 @@ describe('Router6', () => {
       router.use(() => middlewareInner2);
       router.use(() => middlewareInner3);
 
-      let catched = false;
+      let caught = false;
 
       try {
         await router.start('/');
       } catch (e) {
-        catched = true;
+        caught = true;
       }
 
       expect(fn).toHaveBeenCalledWith(2);
       expect(fn2).toHaveBeenCalledWith(0);
       expect(fn3).toHaveBeenCalledWith(1);
-      expect(catched).toBe(false);
+      expect(caught).toBe(false);
       expect(router.currentRoute).toMatchObject({
         name: 'blog',
         path: '/blog',
@@ -409,6 +418,7 @@ describe('Router6', () => {
           path: '/',
           query: {},
           state: undefined,
+          error: null,
         },
         type: 'push',
       };
@@ -430,6 +440,7 @@ describe('Router6', () => {
           path: '/blog',
           query: {},
           state: undefined,
+          error: null,
         },
         type: 'push',
       };

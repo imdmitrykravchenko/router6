@@ -3,7 +3,10 @@ const compose = (middleware, callback) => {
     let index = -1;
     return run(0);
 
-    function run(i) {
+    function run(i, err = null) {
+      if (err) {
+        throw err;
+      }
       if (i <= index) {
         return Promise.reject(new Error('next() called multiple times'));
       }
@@ -17,15 +20,10 @@ const compose = (middleware, callback) => {
       }
 
       try {
-        const abort = (e) => {
-          throw e;
-        };
-        return Promise.resolve(fn(payload, run.bind(null, i + 1), abort)).then(
-          (p) => {
-            callback();
-            return p;
-          },
-        );
+        return Promise.resolve(fn(payload, run.bind(null, i + 1))).then((p) => {
+          callback();
+          return p;
+        });
       } catch (err) {
         return Promise.reject(err);
       }

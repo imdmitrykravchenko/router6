@@ -7,7 +7,9 @@
     "test": "jest",
     "build": "tsc"
   },
-  "keywords": ["router"],
+  "keywords": [
+    "router"
+  ],
   "author": "Dmitry Kravchenko",
   "license": "ISC",
   "dependencies": {

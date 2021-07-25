@@ -1,6 +1,8 @@
+import { Route } from './types';
+
 export class NavigationError extends Error {
   code: number;
-  meta?: { path?: string; route?: string };
+  meta?: { path?: string; route?: string | Route };
   constructor(message: string) {
     super(message);
     // because of https://github.com/Microsoft/TypeScript/wiki/FAQ#why-doesnt-extending-built-ins-like-error-array-and-map-work
@@ -34,10 +36,14 @@ export class InternalServerError extends NavigationError {
 }
 
 export class Redirect extends NavigationError {
-  constructor(message: string, { route }: { route: string }) {
+  constructor(
+    message: string,
+    { route, path }: { route?: string | Route; path?: string },
+  ) {
     super(message);
+
     this.code = 302;
-    this.meta = { route };
+    this.meta = { route, path };
   }
 }
 

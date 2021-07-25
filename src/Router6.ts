@@ -4,6 +4,7 @@ import {
   NavigationError,
   UnExistentRouteError,
   UnRegisteredPathError,
+  Redirect,
 } from './errors';
 import { compile } from 'path-to-regexp';
 import shallowEqual from 'shallowequal';
@@ -115,6 +116,7 @@ class Router6 {
       if (i === nameParts.length - 1) {
         try {
           to = {
+            error: null,
             state,
             query,
             params,
@@ -123,7 +125,7 @@ class Router6 {
               this.options.nameDelimiter,
             ),
             path:
-              (meta && meta.path) ||
+              meta?.path ||
               compile([...routePathSegments, currentRoute.path].join(''))(
                 params,
               ),
@@ -274,7 +276,7 @@ class Router6 {
   }
 
   navigateToRoute(
-    name: string,
+    nameOrRoute: string | Route,
     {
       params,
       query,
@@ -287,10 +289,17 @@ class Router6 {
       force = false,
     }: { type?: string; error?: any; force?: boolean } = {},
   ) {
-    let to: Route;
+    const isName = typeof nameOrRoute === 'string';
+
+    let name: string = isName
+      ? (nameOrRoute as string)
+      : (nameOrRoute as Route).name;
+    let to: Route = isName ? null : (nameOrRoute as Route);
 
     try {
-      to = this.findRoute(name, { params, query, state, meta, strict: true });
+      to =
+        to ||
+        this.findRoute(name, { params, query, state, meta, strict: true });
     } catch (e) {
       return Promise.reject(e);
     }
@@ -316,53 +325,54 @@ class Router6 {
 
     callListeners('start');
 
+    const isRedirect = () =>
+      payload.to.error &&
+      payload.to.error instanceof NavigationError &&
+      payload.to.error.code === 302;
+
     return (
       error
         ? Promise.reject(error)
         : compose(this.middleware, () => callListeners('progress'))(payload)
     )
       .catch((e) => {
-        if (isRoutingError(e)) {
-          payload.to.error = e;
-          return;
-        }
-        throw e;
+        payload.type = 'replace';
+        payload.to.error = e;
       })
       .then(() => {
-        if (type === 'push') {
-          this.stack = [...this.stack, Object.freeze(payload.to)];
+        if (payload.type === 'push') {
+          this.stack = [...this.stack, Object.seal(payload.to)];
         }
-        if (type === 'replace') {
-          this.stack = [...this.stack.slice(0, -1), Object.freeze(payload.to)];
+        if (payload.type === 'replace') {
+          this.stack = [...this.stack.slice(0, -1), Object.seal(payload.to)];
         }
-        if (type === 'pop') {
+        if (payload.type === 'pop') {
           this.stack = this.stack.slice(0, -1);
         }
         callListeners('finish');
       })
       .then(() => {
-        const route = this.currentRoute;
+        if (isRedirect()) {
+          const options = { type: 'replace', error: payload.to.error };
 
-        if (route.error) {
-          if (route.error.meta.route) {
+          if (payload.to.error.meta?.route) {
             return this.navigateToRoute(
-              route.error.meta.route,
+              payload.to.error.meta.route,
               {},
-              { type: 'replace' },
+              options,
             );
           }
-          return this.navigateToRoute(
-            String(route.error.code),
-            {
-              meta: { path: route.path.replace('/', '') },
-              state: { message: route.error.message },
-            },
-            { type: 'replace' },
-          );
+
+          if (payload.to.error.meta?.path) {
+            return this.navigateToPath(payload.to.error.meta.path, options);
+          }
         }
 
-        return route;
-      });
+        if (payload.to.error && payload.to.error !== error) {
+          throw payload.to.error;
+        }
+      })
+      .then(() => this.currentRoute);
   }
 
   listen(event: 'start' | 'progress' | 'finish', handler: RouteListener) {
