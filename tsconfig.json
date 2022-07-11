@@ -5,6 +5,7 @@
     "target": "es5",
     "sourceMap": true,
     "allowJs": false,
+    "lib": ["dom", "esnext"],
     "esModuleInterop": true
   },
   "exclude": ["node_modules"],

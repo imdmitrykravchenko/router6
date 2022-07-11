@@ -61,14 +61,6 @@ class Router6 {
     return stackLength < 2 ? undefined : this.stack[stackLength - 2];
   }
 
-  set error(error: NavigationError) {
-    this.navigateToRoute(
-      String(error.code),
-      { meta: error.meta, state: { message: error.message } },
-      { type: 'replace' },
-    );
-  }
-
   start(path: string, error?: any) {
     return this.navigateToPath(path, { error }).then(() => {
       this.started = true;
@@ -328,12 +320,11 @@ class Router6 {
       payload.to.error instanceof NavigationError &&
       payload.to.error.code === 302;
 
-    return compose(this.middleware, () => callListeners('progress'))(payload)
-      .then(() => {
-        if (error) {
-          throw error;
-        }
-      })
+    return (
+      error
+        ? Promise.reject(error)
+        : compose(this.middleware, () => callListeners('progress'))(payload)
+    )
       .catch((e) => {
         payload.type = 'replace';
         payload.to.error = e;
