@@ -1,6 +1,5 @@
 import {
   IllegalRouteParamsError,
-  NavigationError,
   UnExistentRouteError,
   UnRegisteredPathError,
 } from './errors';
@@ -20,6 +19,7 @@ import {
 } from './types';
 import { parseDefinition, flatten } from './utils';
 import compose from './compose';
+import { isRoutingError } from './errors';
 
 class Router6 {
   routes: ParsedRouteDefinition[];
@@ -268,11 +268,18 @@ class Router6 {
   navigateToRoute(
     nameOrRoute: string | Route,
     {
+      path,
       params,
       query,
       state,
       meta,
-    }: { params?: RouteParams; query?: Query; state?: any; meta?: any } = {},
+    }: {
+      params?: RouteParams;
+      query?: Query;
+      state?: any;
+      meta?: any;
+      path?: string;
+    } = {},
     {
       type = 'push',
       error,
@@ -294,6 +301,9 @@ class Router6 {
       return Promise.reject(e);
     }
 
+    if (path) {
+      to.path = path;
+    }
     const payload = {
       from: this.currentRoute,
       to,
@@ -314,11 +324,6 @@ class Router6 {
     };
 
     callListeners('start');
-
-    const isRedirect = () =>
-      payload.to.error &&
-      payload.to.error instanceof NavigationError &&
-      payload.to.error.code === 302;
 
     return (
       error
@@ -342,19 +347,29 @@ class Router6 {
         callListeners('finish');
       })
       .then(() => {
-        if (isRedirect()) {
-          const options = { type: 'replace', error: payload.to.error };
+        if (!payload.to.error) {
+          return;
+        }
 
-          if (payload.to.error.meta?.route) {
+        if (isRoutingError(payload.to.error)) {
+          const options = { type: 'replace', error: payload.to.error };
+          const { error, ...toRoute } = payload.to;
+          const { route, path } = error.meta || {};
+
+          // mixed error
+          if (route) {
             return this.navigateToRoute(
-              payload.to.error.meta.route,
-              {},
+              route,
+              error.code >= 400
+                ? { ...toRoute, meta: { path: toRoute.path } } // do not redirect on 40X errors
+                : {},
               options,
             );
           }
 
-          if (payload.to.error.meta?.path) {
-            return this.navigateToPath(payload.to.error.meta.path, options);
+          // redirect
+          if (path) {
+            return this.navigateToPath(path, options);
           }
         }
 

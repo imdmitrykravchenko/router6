@@ -51,4 +51,4 @@ export class IllegalRouteParamsError extends Error {}
 export class UnExistentRouteError extends Error {}
 export class UnRegisteredPathError extends Error {}
 
-export const isRoutingError = (e) => e instanceof NavigationError;
+export const isRoutingError = (e) => e && [404, 302, 403].includes(e.code);
