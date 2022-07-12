@@ -325,11 +325,20 @@ class Router6 {
 
     callListeners('start');
 
-    return (
-      error
-        ? Promise.reject(error)
-        : compose(this.middleware, () => callListeners('progress'))(payload)
-    )
+    return compose(this.middleware, () => callListeners('progress'))(payload)
+      .then(
+        () => {
+          if (error) {
+            throw error;
+          }
+        },
+        (e) => {
+          if (error) {
+            throw error;
+          }
+          throw e;
+        },
+      )
       .catch((e) => {
         payload.type = 'replace';
         payload.to.error = e;
@@ -350,7 +359,6 @@ class Router6 {
         if (!payload.to.error) {
           return;
         }
-
         if (isRoutingError(payload.to.error)) {
           const options = { type: 'replace', error: payload.to.error };
           const { error, ...toRoute } = payload.to;
