@@ -11,9 +11,13 @@ export class NavigationError extends Error {
 }
 
 export class NotFoundError extends NavigationError {
-  constructor(message: string) {
+  constructor(message: string, { route }: { route?: string } = {}) {
     super(message);
     this.code = 404;
+
+    if (route) {
+      this.meta = { route };
+    }
   }
 }
 
