@@ -1,4 +1,4 @@
-import Router6, { Redirect } from '../index';
+import Router6 from '../index';
 import {
   IllegalRouteParamsError,
   UnExistentRouteError,
@@ -40,7 +40,6 @@ describe('Router6', () => {
         },
         path: '/blog/wow',
         query: { a: '1' },
-        error: null,
         state: undefined,
       },
       {
@@ -49,7 +48,6 @@ describe('Router6', () => {
         params: {},
         path: '/blog',
         query: {},
-        error: null,
         state: undefined,
       },
     ]);
@@ -189,7 +187,6 @@ describe('Router6', () => {
         {
           from: undefined,
           to: {
-            error: null,
             params: {},
             config: {},
             name: 'home',
@@ -210,13 +207,13 @@ describe('Router6', () => {
       try {
         await router.navigateToRoute('blog');
       } catch (e) {
+        expect(e).toEqual(new Error('nope'));
         stopped = true;
       }
 
       expect(stopped).toBe(true);
-      expect(router.currentRoute.path).toBe('/blog');
-      expect(router.currentRoute.name).toBe('blog');
-      expect(router.currentRoute.error).toEqual(new Error('nope'));
+      expect(router.currentRoute.path).toBe('/');
+      expect(router.currentRoute.name).toBe('home');
     });
     describe('koa-style', () => {
       it('simple calls', async () => {
@@ -304,92 +301,6 @@ describe('Router6', () => {
       expect(fn).toHaveBeenCalledWith(0);
       expect(caught).toBe(true);
     });
-
-    it('simple abort navigate error', async () => {
-      const router = new Router6([
-        { path: '/', name: 'home' },
-        { path: '/blog', name: 'blog' },
-      ]);
-
-      const fn = jest.fn();
-      const middlewareInner = jest.fn(({ to }, next) => {
-        fn();
-        return next();
-      });
-      const middlewareInner2 = jest.fn(({ to }, next) => {
-        return next(
-          to.path === '/'
-            ? new Redirect('Redirected', { route: 'blog' })
-            : null,
-        );
-      });
-
-      router.use(() => middlewareInner);
-      router.use(() => middlewareInner2);
-
-      let caught = false;
-
-      try {
-        await router.start('/');
-      } catch (e) {
-        caught = true;
-      }
-
-      expect(fn).toHaveBeenCalled();
-      expect(caught).toBe(false);
-      expect(router.currentRoute).toMatchObject({
-        name: 'blog',
-        path: '/blog',
-        error: new Redirect('Redirected', { route: 'blog' }),
-      });
-    });
-
-    it('reversed abort navigate error', async () => {
-      const router = new Router6([
-        { path: '/', name: 'home' },
-        { path: '/blog', name: 'blog' },
-      ]);
-      let index = 0;
-      const fn = jest.fn();
-      const fn2 = jest.fn();
-      const fn3 = jest.fn();
-      const middlewareInner = jest.fn(({ to }, next) => {
-        return next().then(() => {
-          fn(index++);
-          return next(new Redirect('Redirected', { route: 'blog' }));
-        });
-      });
-      const middlewareInner2 = jest.fn(({ to }, next) => {
-        fn2(index++);
-        return next();
-      });
-      const middlewareInner3 = jest.fn(({ to }, next) => {
-        fn3(index++);
-        return next();
-      });
-
-      router.use(() => middlewareInner);
-      router.use(() => middlewareInner2);
-      router.use(() => middlewareInner3);
-
-      let caught = false;
-
-      try {
-        await router.start('/');
-      } catch (e) {
-        caught = true;
-      }
-
-      expect(fn).toHaveBeenCalledWith(2);
-      expect(fn2).toHaveBeenCalledWith(0);
-      expect(fn3).toHaveBeenCalledWith(1);
-      expect(caught).toBe(false);
-      expect(router.currentRoute).toMatchObject({
-        name: 'blog',
-        path: '/blog',
-        error: new Redirect('Redirected', { route: 'blog' }),
-      });
-    });
   });
 
   describe('listeners', () => {
@@ -418,7 +329,6 @@ describe('Router6', () => {
           path: '/',
           query: {},
           state: undefined,
-          error: null,
         },
         type: 'push',
       };
@@ -440,7 +350,6 @@ describe('Router6', () => {
           path: '/blog',
           query: {},
           state: undefined,
-          error: null,
         },
         type: 'push',
       };

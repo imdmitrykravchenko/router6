@@ -19,7 +19,6 @@ import {
 } from './types';
 import { parseDefinition, flatten } from './utils';
 import compose from './compose';
-import { isRoutingError } from './errors';
 
 class Router6 {
   routes: ParsedRouteDefinition[];
@@ -61,8 +60,8 @@ class Router6 {
     return stackLength < 2 ? undefined : this.stack[stackLength - 2];
   }
 
-  start(path: string, error?: any) {
-    return this.navigateToPath(path, { error }).then(() => {
+  start(path: string) {
+    return this.navigateToPath(path).then(() => {
       this.started = true;
 
       return this.currentRoute;
@@ -106,7 +105,6 @@ class Router6 {
       if (i === nameParts.length - 1) {
         try {
           to = {
-            error: null,
             state,
             query,
             params,
@@ -215,9 +213,8 @@ class Router6 {
     {
       type = 'push',
       state,
-      error,
       meta,
-    }: { type?: string; error?: any; state?: any; meta?: any } = {},
+    }: { type?: string; state?: any; meta?: any } = {},
   ) {
     const route = this.matchPath(path);
 
@@ -237,7 +234,7 @@ class Router6 {
         params: route.params,
         query: route.query,
       },
-      { type, error },
+      { type },
     );
   }
 
@@ -282,9 +279,11 @@ class Router6 {
     } = {},
     {
       type = 'push',
-      error,
       force = false,
-    }: { type?: string; error?: any; force?: boolean } = {},
+    }: {
+      type?: string;
+      force?: boolean;
+    } = {},
   ) {
     const isName = typeof nameOrRoute === 'string';
 
@@ -326,23 +325,6 @@ class Router6 {
     callListeners('start');
 
     return compose(this.middleware, () => callListeners('progress'))(payload)
-      .then(
-        () => {
-          if (error) {
-            throw error;
-          }
-        },
-        (e) => {
-          if (error) {
-            throw error;
-          }
-          throw e;
-        },
-      )
-      .catch((e) => {
-        payload.type = 'replace';
-        payload.to.error = e;
-      })
       .then(() => {
         if (payload.type === 'push') {
           this.stack = [...this.stack, Object.seal(payload.to)];
@@ -354,36 +336,6 @@ class Router6 {
           this.stack = this.stack.slice(0, -1);
         }
         callListeners('finish');
-      })
-      .then(() => {
-        if (!payload.to.error) {
-          return;
-        }
-        if (isRoutingError(payload.to.error)) {
-          const options = { type: 'replace', error: payload.to.error };
-          const { error, ...toRoute } = payload.to;
-          const { route, path } = error.meta || {};
-
-          // mixed error
-          if (route) {
-            return this.navigateToRoute(
-              route,
-              error.code >= 400
-                ? { ...toRoute, meta: { path: toRoute.path } } // do not redirect on 40X errors
-                : {},
-              options,
-            );
-          }
-
-          // redirect
-          if (path) {
-            return this.navigateToPath(path, options);
-          }
-        }
-
-        if (payload.to.error && payload.to.error !== error) {
-          throw payload.to.error;
-        }
       })
       .then(() => this.currentRoute);
   }

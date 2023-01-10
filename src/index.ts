@@ -1,11 +1,4 @@
 import {
-  isRoutingError,
-  NotFoundError,
-  ForbiddenError,
-  InternalServerError,
-  Redirect,
-} from './errors';
-import {
   RouteDefinition,
   Route,
   RouteMiddleware,
@@ -16,15 +9,4 @@ import Router6 from './Router6';
 
 export default Router6;
 
-export {
-  isRoutingError,
-  NotFoundError,
-  ForbiddenError,
-  InternalServerError,
-  Redirect,
-  RouteDefinition,
-  Route,
-  RouteMiddleware,
-  RouteParams,
-  Query,
-};
+export { RouteDefinition, Route, RouteMiddleware, RouteParams, Query };
