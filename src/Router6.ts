@@ -60,8 +60,8 @@ class Router6 {
     return stackLength < 2 ? undefined : this.stack[stackLength - 2];
   }
 
-  start(path: string) {
-    return this.navigateToPath(path).then(() => {
+  start(path: string, { context }: { context?: any }) {
+    return this.navigateToPath(path, { context }).then(() => {
       this.started = true;
 
       return this.currentRoute;
