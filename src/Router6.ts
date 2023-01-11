@@ -60,14 +60,6 @@ class Router6 {
     return stackLength < 2 ? undefined : this.stack[stackLength - 2];
   }
 
-  start(path: string, { context }: { context?: any }) {
-    return this.navigateToPath(path, { context }).then(() => {
-      this.started = true;
-
-      return this.currentRoute;
-    });
-  }
-
   isStarted() {
     return this.started;
   }
@@ -341,6 +333,9 @@ class Router6 {
           this.stack = this.stack.slice(0, -1);
         }
         callListeners('finish');
+      })
+      .then(() => {
+        this.started = true;
       })
       .then(() => this.currentRoute);
   }

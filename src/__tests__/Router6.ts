@@ -11,7 +11,7 @@ describe('Router6', () => {
 
     expect(router.isStarted()).toBeFalsy();
 
-    await router.start('/');
+    await router.navigateToPath('/');
 
     expect(router.isStarted()).toBeTruthy();
 
@@ -29,7 +29,7 @@ describe('Router6', () => {
       },
     ]);
 
-    await router.start('/blog/wow?a=1');
+    await router.navigateToPath('/blog/wow?a=1');
 
     expect(router.getActiveRoutes()).toEqual([
       {
@@ -57,7 +57,7 @@ describe('Router6', () => {
     it('navigates to same', async () => {
       const router = new Router6([{ path: '/', name: 'home' }]);
 
-      await router.start('/');
+      await router.navigateToPath('/');
 
       const home = router.currentRoute;
 
@@ -81,7 +81,7 @@ describe('Router6', () => {
         },
       ]);
 
-      await router.start('/');
+      await router.navigateToPath('/');
 
       await router.navigateToPath('/blog');
 
@@ -111,7 +111,7 @@ describe('Router6', () => {
         },
       ]);
 
-      await router.start('/');
+      await router.navigateToPath('/');
       await router.navigateToRoute('blog', {
         state: { a: 1 },
         query: { b: '2' },
@@ -181,7 +181,7 @@ describe('Router6', () => {
 
       router.use(() => middlewareInner);
 
-      await router.start('/');
+      await router.navigateToPath('/');
 
       expect(middlewareInner).toHaveBeenCalledWith(
         {
@@ -237,7 +237,7 @@ describe('Router6', () => {
         router.use(() => middlewareInner);
         router.use(() => middlewareInner2);
 
-        await router.start('/');
+        await router.navigateToPath('/');
 
         expect(fn).toHaveBeenCalledWith(0);
         expect(fn2).toHaveBeenCalledWith(1);
@@ -265,7 +265,7 @@ describe('Router6', () => {
       router.use(() => middlewareInner);
       router.use(() => middlewareInner2);
 
-      await router.start('/');
+      await router.navigateToPath('/');
 
       expect(fn).toHaveBeenCalledWith(1);
       expect(fn2).toHaveBeenCalledWith(0);
@@ -293,7 +293,7 @@ describe('Router6', () => {
       let caught = false;
 
       try {
-        await router.start('/');
+        await router.navigateToPath('/');
       } catch (e) {
         caught = true;
       }
@@ -318,7 +318,7 @@ describe('Router6', () => {
       const unProgress = router.listen('progress', onProgress);
       const unFinish = router.listen('finish', onFinish);
 
-      await router.start('/');
+      await router.navigateToPath('/');
 
       const payload = {
         from: undefined,
@@ -382,7 +382,7 @@ describe('Router6', () => {
         { path: '/(.*)', name: '404' },
       ]);
 
-      await router.start('/g/bb');
+      await router.navigateToPath('/g/bb');
 
       expect(router.currentRoute.name).toBe('404');
     });
