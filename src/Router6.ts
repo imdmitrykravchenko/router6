@@ -214,7 +214,8 @@ class Router6 {
       type = 'push',
       state,
       meta,
-    }: { type?: string; state?: any; meta?: any } = {},
+      context,
+    }: { type?: string; state?: any; meta?: any; context?: any } = {},
   ) {
     const route = this.matchPath(path);
 
@@ -231,6 +232,7 @@ class Router6 {
       {
         state,
         meta,
+        context,
         params: route.params,
         query: route.query,
       },
@@ -270,12 +272,14 @@ class Router6 {
       query,
       state,
       meta,
+      context,
     }: {
       params?: RouteParams;
       query?: Query;
       state?: any;
       meta?: any;
       path?: string;
+      context?: any;
     } = {},
     {
       type = 'push',
@@ -307,6 +311,7 @@ class Router6 {
       from: this.currentRoute,
       to,
       type,
+      context,
     };
 
     if (!force && this.areRoutesEqual(payload.from, payload.to)) {
