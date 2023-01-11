@@ -29,7 +29,12 @@ export type Route = {
 };
 
 export type RouteMiddlewareHandler = (
-  { from, to, type }: { from: Route | null; to: Route; type: string },
+  {
+    from,
+    to,
+    type,
+    context,
+  }: { from: Route | null; to: Route; type: string; context?: any },
   next: (e?: Error) => void,
 ) => void;
 
