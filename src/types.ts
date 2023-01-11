@@ -5,7 +5,7 @@ import Router6 from './Router6';
 
 export type Query = UrlWithParsedQuery['query'];
 export type RouteDefinition = {
-  path: string;
+  path?: string;
   name: string;
   children?: RouteDefinition[];
   config?: { [key: string]: any };

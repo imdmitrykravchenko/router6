@@ -3,11 +3,11 @@ import { RouteDefinition, ParsedRouteDefinition } from './types';
 
 export const flatten =
   (parent, nameDelimiter) =>
-  (result, { path, name, children = [], ...rest }) =>
+  (result, { path = '', name, children = [], ...rest }) =>
     children.reduce(flatten({ path, name }, nameDelimiter), [
       ...result,
       {
-        path: [parent.path, path].join(''),
+        path: [parent.path, path].filter(Boolean).join(''),
         name: [parent.name, name].filter(Boolean).join(nameDelimiter),
         children,
         ...rest,
