@@ -200,7 +200,7 @@ describe('Router6', () => {
       );
 
       middlewareInner.mockImplementation(({ from }, next) => {
-        next(new Error('nope'));
+        return next(new Error('nope'));
       });
       let stopped = false;
 

@@ -1,7 +1,7 @@
 {
   "name": "router6",
   "version": "0.1.0",
-  "description": "better router5",
+  "description": "another agnostic router",
   "main": "dist/index.js",
   "scripts": {
     "test": "jest",

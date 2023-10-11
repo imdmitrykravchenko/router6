@@ -2,15 +2,17 @@
 
 Env agnostic router
 
+## Installation
+
 ```
 npm install router6
 ```
 
-or
-
 ```
 yarn add router6
 ```
+
+## Usage example
 
 ```typescript
 import Router6 from 'router6';
