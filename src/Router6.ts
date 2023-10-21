@@ -16,6 +16,8 @@ import {
   Options,
   RouteListener,
   RouteMiddlewareHandler,
+  RouteEvent,
+  RouteMeta,
 } from './types';
 import { parseDefinition, flatten } from './utils';
 import compose from './compose';
@@ -27,11 +29,10 @@ class Router6 {
 
   private listeners: {
     handler: RouteListener;
-    event: 'start' | 'finish' | 'progress';
+    event: RouteEvent;
   }[];
-  private middleware: RouteMiddlewareHandler[];
+  private readonly middleware: RouteMiddlewareHandler[];
 
-  private navigation: string;
   private started: boolean;
 
   constructor(
@@ -42,7 +43,6 @@ class Router6 {
     this.listeners = [];
     this.middleware = [];
     this.started = false;
-    this.navigation = null;
     this.routes = routes.map(parseDefinition());
     this.options = { nameDelimiter };
     this.getActiveRoutes = this.getActiveRoutes.bind(this);
@@ -76,7 +76,7 @@ class Router6 {
       params?: RouteParams;
       query?: Query;
       state?: any;
-      meta?: any;
+      meta?: RouteMeta;
       strict?: boolean;
     } = {},
   ) {
@@ -201,20 +201,20 @@ class Router6 {
   }
 
   navigateToPath(
-    path: string,
+    href: string,
     {
       type = 'push',
       state,
       meta,
       context,
-    }: { type?: string; state?: any; meta?: any; context?: any } = {},
+    }: { type?: string; state?: any; meta?: RouteMeta; context?: any } = {},
   ) {
-    const route = this.matchPath(path);
+    const route = this.matchPath(href);
 
     if (!route) {
       return Promise.reject(
         new UnRegisteredPathError(
-          `Path "${path}" does not match any existent route`,
+          `Path "${href}" does not match any existent route`,
         ),
       );
     }
@@ -256,7 +256,7 @@ class Router6 {
     );
   }
 
-  navigateToRoute(
+  async navigateToRoute(
     nameOrRoute: string | Route,
     {
       path,
@@ -269,7 +269,7 @@ class Router6 {
       params?: RouteParams;
       query?: Query;
       state?: any;
-      meta?: any;
+      meta?: RouteMeta;
       path?: string;
       context?: any;
     } = {},
@@ -309,11 +309,8 @@ class Router6 {
     if (!force && this.areRoutesEqual(payload.from, payload.to)) {
       return Promise.resolve(this.currentRoute);
     }
-    const currentNavigation = `${Date.now()}${name}`;
 
-    this.navigation = currentNavigation;
-
-    const callListeners = (event) => {
+    const callListeners = (event: RouteEvent) => {
       this.listeners
         .filter((listener) => listener.event === event)
         .forEach(({ handler }) => handler(payload));
@@ -321,26 +318,26 @@ class Router6 {
 
     callListeners('start');
 
-    return compose(this.middleware, () => callListeners('progress'))(payload)
-      .then(() => {
-        if (payload.type === 'push') {
-          this.stack = [...this.stack, Object.seal(payload.to)];
-        }
-        if (payload.type === 'replace') {
-          this.stack = [...this.stack.slice(0, -1), Object.seal(payload.to)];
-        }
-        if (payload.type === 'pop') {
-          this.stack = this.stack.slice(0, -1);
-        }
-        callListeners('finish');
-      })
-      .then(() => {
-        this.started = true;
-      })
-      .then(() => this.currentRoute);
+    await compose(this.middleware, () => callListeners('progress'))(payload);
+
+    if (payload.type === 'push') {
+      this.stack = [...this.stack, Object.seal(payload.to)];
+    }
+    if (payload.type === 'replace') {
+      this.stack = [...this.stack.slice(0, -1), Object.seal(payload.to)];
+    }
+    if (payload.type === 'pop') {
+      this.stack = this.stack.slice(0, -1);
+    }
+
+    callListeners('finish');
+
+    this.started = true;
+
+    return this.currentRoute;
   }
 
-  listen(event: 'start' | 'progress' | 'finish', handler: RouteListener) {
+  listen(event: RouteEvent, handler: RouteListener) {
     this.listeners.push({ event, handler });
 
     return () => {

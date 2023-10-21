@@ -386,5 +386,29 @@ describe('Router6', () => {
 
       expect(router.currentRoute.name).toBe('404');
     });
+
+    it('404 as initial route', async () => {
+      const router = new Router6([
+        { path: '/', name: 'home' },
+        { path: '/:section(a|b|c)/:tag', name: 'some' },
+        { path: '/(.*)', name: '404', config: { a: true } },
+      ]);
+
+      await router.navigateToRoute({
+        path: '/c/no',
+        name: '404',
+        params: {},
+        query: { a: 'b' },
+        config: { a: true },
+      });
+
+      expect(router.currentRoute).toEqual({
+        query: { a: 'b' },
+        params: {},
+        config: { a: true },
+        name: '404',
+        path: '/c/no',
+      });
+    });
   });
 });

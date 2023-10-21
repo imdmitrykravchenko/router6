@@ -39,7 +39,10 @@ export type RouteMiddlewareHandler = (
 ) => void;
 
 export type RouteMiddleware = (router: Router6) => RouteMiddlewareHandler;
-
+export type RouteMeta = {
+  path?: string;
+};
+export type RouteEvent = 'start' | 'progress' | 'finish';
 export type RouteListener = ({
   from,
   to,
